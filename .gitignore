@@ -2,3 +2,6 @@ __pycache__/
 *.py[cod]
 all_generated_data.sql
 generated_sql/
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
