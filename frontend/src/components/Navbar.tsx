@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { LogOut, Menu, Moon, Sun, X } from "lucide-react";
-import { useState } from "react";
+import { LogOut, Menu, X } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 
 const links = [
   ["dashboard", "Dashboard"],
@@ -15,47 +15,75 @@ const links = [
 export default function Navbar({
   active,
   setActive,
-  dark,
-  toggleDark,
 }: {
   active: string;
   setActive: (value: string) => void;
-  dark: boolean;
-  toggleDark: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const specularRef = useRef<HTMLDivElement>(null);
+
   const navigate = (value: string) => {
     setActive(value);
     setOpen(false);
   };
 
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (specularRef.current) {
+      specularRef.current.style.background = `radial-gradient(
+        circle at ${x}px ${y}px,
+        rgba(255,255,255,0.10) 0%,
+        rgba(255,255,255,0.03) 40%,
+        transparent 70%
+      )`;
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (specularRef.current) {
+      specularRef.current.style.background = "";
+    }
+  }, []);
+
   return (
     <>
-      <nav className="navbar desktop-nav">
-        <button className="brand" onClick={() => navigate("dashboard")}>
-          CourseSense
-        </button>
-        <div className="nav-links">
-          {links.map(([id, label]) => (
-            <button key={id} onClick={() => navigate(id)} className={active === id ? "active" : ""}>
-              {label}
+      <nav
+        className="navbar desktop-nav glass-nav"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Glass layers */}
+        <div className="glass-filter" />
+        <div className="glass-overlay" />
+        <div className="glass-specular" ref={specularRef} />
+
+        {/* Nav content sits above glass layers via glass-nav-inner */}
+        <div className="glass-nav-inner">
+          <button className="brand" onClick={() => navigate("dashboard")}>
+            <img src="/sle-logo.png" alt="SLE" style={{ height: "2rem", width: "auto", display: "inline-block", verticalAlign: "middle", marginRight: "0.5rem" }} />
+            SLE
+          </button>
+          <div className="nav-links">
+            {links.map(([id, label]) => (
+              <button key={id} onClick={() => navigate(id)} className={active === id ? "active" : ""}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="nav-actions">
+            <button className="ghost-button">
+              Sign Out <LogOut size={14} />
             </button>
-          ))}
-        </div>
-        <div className="nav-actions">
-          <button className="ghost-button" onClick={toggleDark} aria-label="Toggle theme">
-            {dark ? <Sun size={15} /> : <Moon size={15} />}
-            {dark ? "Light Mode" : "Dark Mode"}
-          </button>
-          <button className="ghost-button">
-            Sign Out <LogOut size={14} />
-          </button>
+          </div>
         </div>
       </nav>
 
       <nav className="mobile-nav">
         <button className="brand" onClick={() => navigate("dashboard")}>
-          CourseSense
+          <img src="/sle-logo.png" alt="SLE" style={{ height: "1.8rem", width: "auto", display: "inline-block", verticalAlign: "middle", marginRight: "0.4rem" }} />
+          SLE
         </button>
         <button className="icon-button" onClick={() => setOpen((value) => !value)} aria-label="Open menu">
           {open ? <X size={22} /> : <Menu size={22} />}
@@ -82,10 +110,6 @@ export default function Navbar({
                 {label}
               </motion.button>
             ))}
-            <button className="ghost-button mobile-theme" onClick={toggleDark}>
-              {dark ? <Sun size={16} /> : <Moon size={16} />}
-              {dark ? "Light Mode" : "Dark Mode"}
-            </button>
           </motion.div>
         )}
       </AnimatePresence>

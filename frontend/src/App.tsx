@@ -10,7 +10,6 @@ import {
   GraduationCap,
   Layers3,
   Link as LinkIcon,
-  Loader2,
   MessageSquareText,
   Plus,
   Presentation,
@@ -21,6 +20,9 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Badge from "./components/Badge";
+import GlassButton from "./components/GlassButton";
+import GlassIcon from "./components/GlassIcon";
+import GlassSpinner from "./components/GlassSpinner";
 import MotionCard from "./components/MotionCard";
 import Navbar from "./components/Navbar";
 import {
@@ -88,17 +90,12 @@ function EmptyState({
 
 function App() {
   const [active, setActive] = useState("dashboard");
-  const [dark, setDark] = useState(true);
   const [courses, setCourses] = useState<Course[]>(demoCourses);
   const [events, setEvents] = useState<EventRow[]>(demoEvents);
   const [content, setContent] = useState<CourseContent[]>(demoContent);
   const [selectedCourse, setSelectedCourse] = useState("COMP4187");
   const [status, setStatus] = useState<LoadState>("idle");
   const [apiError, setApiError] = useState("");
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("light", !dark);
-  }, [dark]);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,7 +136,7 @@ function App() {
 
   return (
     <div className="app-shell">
-      <Navbar active={active} setActive={setActive} dark={dark} toggleDark={() => setDark((value) => !value)} />
+      <Navbar active={active} setActive={setActive} />
       <main className="app-main">
         {apiError && (
           <div className="api-warning">
@@ -214,14 +211,14 @@ function Dashboard({
             assignments, and reports.
           </p>
           <div className="hero-actions">
-            <button className="primary-button" onClick={() => setActive("courses")}>
+            <GlassButton variant="primary" onClick={() => setActive("courses")}>
               <BookOpen size={16} />
               Explore Courses
-            </button>
-            <button className="secondary-button" onClick={() => setActive("reports")}>
+            </GlassButton>
+            <GlassButton onClick={() => setActive("reports")}>
               <BarChart3 size={16} />
               Review Gaps
-            </button>
+            </GlassButton>
           </div>
         </div>
       </section>
@@ -229,9 +226,9 @@ function Dashboard({
       <div className="stats-grid">
         {stats.map(({ label, value, icon: Icon, tone }, index) => (
           <MotionCard key={label} delay={index * 0.05} hover={false} className="stat-card">
-            <div className={`stat-icon ${tone}`}>
+            <GlassIcon tone={tone as "safe" | "warn" | "blue" | "info"} size="2rem">
               <Icon size={18} />
-            </div>
+            </GlassIcon>
             <p>{label}</p>
             <strong>{value}</strong>
           </MotionCard>
@@ -245,7 +242,7 @@ function Dashboard({
               <h2>Current Course Activity</h2>
               <p>{status === "loading" ? "Connecting to Flask API..." : "Live where possible, demo-backed where needed."}</p>
             </div>
-            {status === "loading" && <Loader2 className="spin" size={18} />}
+            {status === "loading" && <GlassSpinner size={28} />}
           </div>
           <div className="course-list compact">
             {courses.slice(0, 4).map((course) => (
@@ -339,14 +336,19 @@ function Courses({
         Browse all courses, select a working course context, and prepare enrollment/member workflows.
       </PageHeader>
       <div className="toolbar">
-        <div className="search-box">
-          <Search size={16} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search course code or title" />
+        <div className="search-box glass-search-wrap">
+          <div className="glass-filter" />
+          <div className="glass-overlay" />
+          <div className="glass-specular" />
+          <div className="glass-search-inner">
+            <Search size={16} />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search course code or title" />
+          </div>
         </div>
-        <button className="primary-button">
+        <GlassButton variant="primary">
           <Plus size={16} />
           Create Course
-        </button>
+        </GlassButton>
       </div>
       <div className="course-list">
         {filtered.map((course, index) => (
@@ -358,9 +360,9 @@ function Courses({
             </div>
             <div className="card-footer">
               <span>Lecturer {course.lecturer_id}</span>
-              <button className="secondary-button" onClick={() => setSelectedCourse(course.course_code)}>
+              <GlassButton onClick={() => setSelectedCourse(course.course_code)}>
                 Use Course
-              </button>
+              </GlassButton>
             </div>
           </MotionCard>
         ))}
@@ -401,10 +403,10 @@ function Calendar({ events, selectedCourse }: { events: EventRow[]; selectedCour
                 <option value="exam">Exam</option>
               </select>
             </label>
-            <button type="button" className="primary-button">
+            <GlassButton type="button" variant="primary">
               <CalendarDays size={16} />
               Save Event
-            </button>
+            </GlassButton>
           </form>
         </MotionCard>
         <MotionCard hover={false} className="wide-card">
@@ -551,10 +553,10 @@ function Content({ content, selectedCourse }: { content: CourseContent[]; select
                 <option value="video">Video</option>
               </select>
             </label>
-            <button type="button" className="primary-button">
+            <GlassButton type="button" variant="primary">
               <Plus size={16} />
               Upload
-            </button>
+            </GlassButton>
           </form>
         </MotionCard>
         <MotionCard hover={false} className="wide-card">

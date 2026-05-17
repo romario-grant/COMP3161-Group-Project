@@ -1,0 +1,441 @@
+/* =============================================
+   LIQUID GLASS — CourseSense
+   Based on snipzy.dev liquid glass snippets
+   ============================================= */
+
+/* ------------------------------------------
+   Shared glass layer utilities
+   Three absolutely-positioned layers that sit
+   inside any .glass-* container:
+     1. glass-filter  — backdrop blur + SVG distortion
+     2. glass-overlay — tinted semi-transparent fill
+     3. glass-specular — inset highlight, updated by JS
+   ------------------------------------------ */
+.glass-filter,
+.glass-overlay,
+.glass-specular {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.glass-filter {
+  z-index: 1;
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  filter: url(#glass-distortion) brightness(1.05);
+}
+
+.glass-overlay {
+  z-index: 2;
+}
+
+.glass-specular {
+  z-index: 3;
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.22);
+  transition: background 80ms ease;
+}
+
+/* Children of glass containers must sit above the three layers */
+.glass-card > *:not(.glass-filter):not(.glass-overlay):not(.glass-specular),
+.glass-nav-inner,
+.glass-btn-content,
+.glass-icon-content,
+.glass-spinner-content,
+.glass-toggle-content {
+  position: relative;
+  z-index: 4;
+}
+
+/* Full-page background image — no tint, no overlay, no opacity change */
+html {
+  background-color: transparent !important;
+}
+
+body,
+:root.light body {
+  background-image: url('/bg.jpg') !important;
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-color: #111; /* fallback while image loads */
+}
+
+/* Hero image fallback if Unsplash is unreachable */
+.hero-photo {
+  background-color: #1a1030;
+  background-image:
+    url("https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?auto=format&fit=crop&w=1800&q=80");
+}
+
+/* =============================================
+   GLASS CARD  (CRD004)
+   Replaces the solid motion-card look.
+   ============================================= */
+.motion-card.glass-card {
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  backdrop-filter: none; /* moved into .glass-filter */
+}
+
+.glass-card .glass-overlay {
+  background: rgba(18, 18, 22, 0.38);
+}
+
+:root.light .glass-card .glass-overlay {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.glass-card .glass-specular {
+  box-shadow:
+    inset 1px 1px 0px rgba(255, 255, 255, 0.55),
+    inset -1px -1px 0px rgba(255, 255, 255, 0.08);
+}
+
+/* =============================================
+   GLASS BUTTON  (BTN003)
+   ============================================= */
+.glass-btn {
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-radius: 0.85rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  font-size: 0.86rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.glass-btn:hover  { transform: translateY(-2px); }
+.glass-btn:active { transform: translateY(0) scale(0.97); }
+
+.glass-btn .glass-overlay {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: inherit;
+}
+
+.glass-btn .glass-specular {
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.45);
+}
+
+:root.light .glass-btn .glass-overlay {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.glass-btn-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+/* Primary variant — bright fill */
+.glass-btn-primary .glass-overlay {
+  background: rgba(244, 244, 245, 0.88);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.glass-btn-primary .glass-btn-content {
+  color: #101014;
+}
+
+:root.light .glass-btn-primary .glass-overlay {
+  background: rgba(21, 21, 24, 0.84);
+  border-color: rgba(0, 0, 0, 0.22);
+}
+
+:root.light .glass-btn-primary .glass-btn-content {
+  color: #fff;
+}
+
+/* =============================================
+   GLASS ICONS  (ICO001)
+   ============================================= */
+.glass-icon {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.8rem;
+  background: transparent;
+  transition: transform 0.18s ease;
+  display: grid;
+  place-items: center;
+}
+
+.glass-icon:hover { transform: scale(1.08); }
+
+.glass-icon .glass-overlay {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.glass-icon .glass-specular {
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.38);
+}
+
+:root.light .glass-icon .glass-overlay {
+  background: rgba(0, 0, 0, 0.055);
+}
+
+.glass-icon-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* tone colour hints applied through the icon colour */
+.glass-icon.safe  { color: var(--green); }
+.glass-icon.warn  { color: var(--yellow); }
+.glass-icon.blue  { color: var(--blue); }
+.glass-icon.info  { color: var(--foreground); }
+
+/* =============================================
+   GLASS NAV  (NAV002)
+   ============================================= */
+.glass-nav {
+  /* No position: relative here — .navbar already has position: fixed */
+  overflow: hidden;
+}
+
+/* Kill the old solid background — glass-overlay takes over */
+.navbar.glass-nav {
+  background: transparent;
+}
+
+.glass-nav .glass-overlay {
+  background: rgba(8, 8, 12, 0.52);
+}
+
+:root.light .glass-nav .glass-overlay {
+  background: rgba(20, 20, 24, 0.55);
+}
+
+.glass-nav .glass-specular {
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Wrapper so all nav children sit above glass layers */
+.glass-nav-inner {
+  display: contents; /* transparent wrapper — no layout impact */
+}
+
+/* Elevate all direct nav content above the glass overlay (z-index 2) */
+.navbar .brand,
+.navbar .nav-links,
+.navbar .nav-actions {
+  position: relative;
+  z-index: 4;
+}
+
+/* All navbar text always white */
+.navbar .brand,
+.navbar .nav-links button,
+.navbar .nav-links button.active,
+.navbar .nav-links button:hover,
+.navbar .ghost-button,
+.navbar .glass-btn-content {
+  color: #fff !important;
+}
+
+/* =============================================
+   GLASS SEARCH  (SRH002)
+   ============================================= */
+.glass-search-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.9rem;
+}
+
+.search-box.glass-search-wrap {
+  background: transparent;
+  border-color: transparent;
+}
+
+.glass-search-wrap .glass-overlay {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: inherit;
+}
+
+.glass-search-wrap .glass-specular {
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.glass-search-wrap .glass-search-inner {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  height: 100%;
+  padding: 0 0.9rem;
+}
+
+/* =============================================
+   GLASS SPINNER  (LDR003)
+   ============================================= */
+.glass-spinner {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.glass-spinner .glass-overlay {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 50%;
+}
+
+.glass-spinner-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.glass-spinner-ring {
+  position: absolute;
+  border: 2px solid transparent;
+  border-top-color:  rgba(255, 255, 255, 0.88);
+  border-right-color: rgba(255, 255, 255, 0.52);
+  border-radius: 50%;
+  animation: glass-spin 0.85s linear infinite;
+}
+
+.glass-spinner-core {
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  animation: glass-pulse 0.85s ease-in-out infinite alternate;
+}
+
+@keyframes glass-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes glass-pulse {
+  from { transform: scale(0.75); opacity: 0.45; }
+  to   { transform: scale(1);    opacity: 0.85; }
+}
+
+/* =============================================
+   GLASS TOGGLE  (TGL001)
+   ============================================= */
+.glass-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+
+.glass-toggle-track {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
+}
+
+.glass-toggle-track .glass-overlay {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+.glass-toggle-track .glass-specular {
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.42);
+}
+
+:root.light .glass-toggle-track .glass-overlay {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.glass-toggle-thumb {
+  position: absolute;
+  z-index: 5;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-toggle-thumb .glass-overlay {
+  background: rgba(255, 255, 255, 0.90);
+  border-radius: 50%;
+}
+
+:root.light .glass-toggle-thumb .glass-overlay {
+  background: rgba(30, 30, 36, 0.82);
+}
+
+/* Checked state — slide thumb right */
+.glass-toggle-track.is-on .glass-toggle-thumb {
+  transform: translateX(20px);
+}
+
+.glass-toggle-track.is-on .glass-overlay {
+  background: rgba(119, 183, 255, 0.45);
+}
+
+:root.light .glass-toggle-track.is-on .glass-overlay {
+  background: rgba(100, 140, 255, 0.35);
+}
+
+/* =============================================
+   GLASS FORM INPUTS  (FRM001)
+   ============================================= */
+.form-stack input,
+.form-stack select,
+.reply-box input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-stack input:focus,
+.form-stack select:focus,
+.reply-box input:focus {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.26);
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.08), 0 0 0 3px rgba(119, 183, 255, 0.12);
+}
+
+:root.light .form-stack input,
+:root.light .form-stack select,
+:root.light .reply-box input {
+  background: rgba(0, 0, 0, 0.035);
+  border-color: rgba(0, 0, 0, 0.10);
+}
+
+:root.light .form-stack input:focus,
+:root.light .form-stack select:focus {
+  background: rgba(0, 0, 0, 0.055);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 3px rgba(100, 140, 255, 0.10);
+}
+
+/* =============================================
+   GLASS DROPDOWN SELECT  (DRP001)
+   ============================================= */
+.form-stack select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a4a4ad' stroke-width='2'%3E%3Cpath d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}

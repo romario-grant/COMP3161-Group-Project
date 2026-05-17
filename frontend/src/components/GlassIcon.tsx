@@ -1,17 +1,16 @@
-import { motion } from "framer-motion";
 import { useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 
-export default function MotionCard({
+export default function GlassIcon({
   children,
+  tone = "info",
+  size = "2rem",
   className = "",
-  delay = 0,
-  hover = true,
 }: {
   children: ReactNode;
+  tone?: "safe" | "warn" | "blue" | "info";
+  size?: string;
   className?: string;
-  delay?: number;
-  hover?: boolean;
 }) {
   const specularRef = useRef<HTMLDivElement>(null);
 
@@ -22,9 +21,9 @@ export default function MotionCard({
     if (specularRef.current) {
       specularRef.current.style.background = `radial-gradient(
         circle at ${x}px ${y}px,
-        rgba(255,255,255,0.16) 0%,
-        rgba(255,255,255,0.05) 32%,
-        transparent 62%
+        rgba(255,255,255,0.22) 0%,
+        rgba(255,255,255,0.07) 40%,
+        transparent 70%
       )`;
     }
   }, []);
@@ -36,19 +35,16 @@ export default function MotionCard({
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: [0.25, 0.1, 0.25, 1] }}
-      whileHover={hover ? { y: -3, transition: { duration: 0.2 } } : undefined}
-      className={`motion-card glass-card ${className}`}
+    <div
+      className={`glass-icon ${tone} ${className}`}
+      style={{ width: size, height: size }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
       <div className="glass-filter" />
       <div className="glass-overlay" />
       <div className="glass-specular" ref={specularRef} />
-      {children}
-    </motion.div>
+      <div className="glass-icon-content">{children}</div>
+    </div>
   );
 }

@@ -1,30 +1,33 @@
-import { motion } from "framer-motion";
 import { useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 
-export default function MotionCard({
+export default function GlassButton({
   children,
+  onClick,
+  type = "button",
+  variant = "default",
+  disabled = false,
   className = "",
-  delay = 0,
-  hover = true,
 }: {
   children: ReactNode;
+  onClick?: () => void;
+  type?: "button" | "submit";
+  variant?: "default" | "primary";
+  disabled?: boolean;
   className?: string;
-  delay?: number;
-  hover?: boolean;
 }) {
   const specularRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     if (specularRef.current) {
       specularRef.current.style.background = `radial-gradient(
         circle at ${x}px ${y}px,
-        rgba(255,255,255,0.16) 0%,
-        rgba(255,255,255,0.05) 32%,
-        transparent 62%
+        rgba(255,255,255,0.18) 0%,
+        rgba(255,255,255,0.06) 35%,
+        transparent 65%
       )`;
     }
   }, []);
@@ -36,19 +39,18 @@ export default function MotionCard({
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: [0.25, 0.1, 0.25, 1] }}
-      whileHover={hover ? { y: -3, transition: { duration: 0.2 } } : undefined}
-      className={`motion-card glass-card ${className}`}
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`glass-btn ${variant === "primary" ? "glass-btn-primary" : ""} ${className}`}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
       <div className="glass-filter" />
       <div className="glass-overlay" />
       <div className="glass-specular" ref={specularRef} />
-      {children}
-    </motion.div>
+      <span className="glass-btn-content">{children}</span>
+    </button>
   );
 }

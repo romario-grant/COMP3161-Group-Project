@@ -85,7 +85,7 @@ input:disabled {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 2rem;
-  padding: 1.7rem 3rem 1.2rem;
+  padding: 0.6rem 3rem;
   border-bottom: 1px solid var(--border);
   background: rgba(11, 11, 13, 0.74);
   backdrop-filter: blur(18px);
@@ -99,7 +99,7 @@ input:disabled {
 .brand {
   border: 0;
   background: transparent;
-  color: var(--foreground);
+  color: #fff;
   font-size: 1.05rem;
   font-weight: 650;
   letter-spacing: -0.04em;
@@ -115,7 +115,7 @@ input:disabled {
   position: relative;
   border: 0;
   background: transparent;
-  color: var(--muted);
+  color: #fff;
   padding: 0.25rem 0;
   font-size: 0.86rem;
   font-weight: 600;
@@ -168,7 +168,7 @@ input:disabled {
 
 .ghost-button {
   background: transparent;
-  color: var(--muted);
+  color: #fff;
 }
 
 .ghost-button:hover {
