@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+
+  db:
+    image: mysql:8.0
+    container_name: comp3161_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: course_mgmt
+      MYSQL_USER: user_1
+      MYSQL_PASSWORD: password876
+    ports:
+      - "3308:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "user_1", "--password=password876"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  api:
+    build: .
+    container_name: comp3161_api
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_USER: user_1
+      DB_PASSWORD: password876
+      DB_NAME: course_mgmt
+      FLASK_ENV: development
+    ports:
+      - "5001:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:

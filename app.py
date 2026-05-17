@@ -1,7 +1,18 @@
 from flask import Flask, request, make_response
 import mysql.connector
+import os
 
 app = Flask(__name__)
+
+DB_CONFIG = {
+    "host":     os.environ.get("DB_HOST",     "127.0.0.1"),
+    "user":     os.environ.get("DB_USER",     "user_1"),
+    "password": os.environ.get("DB_PASSWORD", "password876"),
+    "database": os.environ.get("DB_NAME",     "course_mgmt"),
+}
+
+def get_db():
+    return mysql.connector.connect(**DB_CONFIG)
 
 
 @app.route('/register_user', methods=['POST'])
@@ -10,18 +21,20 @@ def register_user():
     try:
         data = request.get_json()
 
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor()
-        values = (data['user_id'], data['email'], data['password_hash'], data['role'], data['full_name'], data['created_at'])
-        cursor.execute('INSERT INTO users (user_id, email, password_hash, role, full_name, created_at) VALUES (%s, %s, %s, %s, %s, %s)', values)
+        values = (data['email'], data['password_hash'], data['role'], data['full_name'])
+        cursor.execute('INSERT INTO users (email, password_hash, role, full_name) VALUES (%s, %s, %s, %s)', values)
+
+        new_user_id = cursor.lastrowid  # ← grabs the auto-generated user_id
+
         role = data['role']
         if role == 'student':
-            cursor.execute('INSERT INTO students (student_id) VALUES (%s)', (data['user_id'],))
+            cursor.execute('INSERT INTO students (student_id) VALUES (%s)', (new_user_id,))
         elif role == 'lecturer':
-            cursor.execute('INSERT INTO lecturers (lecturer_id) VALUES (%s)', (data['user_id'],))
+            cursor.execute('INSERT INTO lecturers (lecturer_id) VALUES (%s)', (new_user_id,))
         elif role == 'admin':
-            cursor.execute('INSERT INTO admins (admin_id) VALUES (%s)', (data['user_id'],))
-
+            cursor.execute('INSERT INTO admins (admin_id) VALUES (%s)', (new_user_id,))
         cnx.commit()
 
         cursor.close()
@@ -36,7 +49,7 @@ def register_user():
 
 def user_login(user_id):
     try:
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor(dictionary=True)
         cursor.execute('SELECT * FROM users WHERE user_id = %s', (user_id,))
         user = cursor.fetchone()
@@ -60,7 +73,7 @@ def create_course():
         
         user_id = data.get('user_id')
 
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor(dictionary=True)
         cursor.execute('SELECT role FROM users WHERE user_id = %s', (user_id,))
         user = cursor.fetchone()
@@ -87,7 +100,7 @@ def create_course():
 
 def get_all_courses():
     try:
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor()
         cursor.execute('SELECT * FROM courses')
         course_list = []
@@ -113,7 +126,7 @@ def get_all_courses():
 
 def get_student_courses(student_id):
     try:
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor(dictionary=True)
         cursor.execute('SELECT course_code FROM enrollments WHERE student_id = %s', (student_id,))
         student_courses = cursor.fetchall()
@@ -133,7 +146,7 @@ def get_student_courses(student_id):
 
 def get_lecturer_courses(lecturer_id):
     try:
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor(dictionary=True)
         cursor.execute('SELECT course_code, course_title FROM courses WHERE lecturer_id = %s', (lecturer_id,))
         lecturer_courses = cursor.fetchall()
@@ -159,7 +172,7 @@ def register_for_course():
     course_code = data.get('course_code')
 
     try:
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor()
 
         cursor.execute('INSERT INTO enrollments (student_id, course_code) VALUES (%s, %s)', (student_id, course_code))
@@ -178,7 +191,7 @@ def register_for_course():
 
 def get_course_students(course_code):
     try:
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor(dictionary=True)
 
         cursor.execute('SELECT u.user_id AS student_id, u.full_name FROM enrollments e JOIN students s ON e.student_id = s.student_id JOIN users u ON s.student_id = u.user_id WHERE e.course_code = %s', (course_code,))
@@ -200,7 +213,7 @@ def get_course_students(course_code):
 def create_event():
     try:
         data = request.get_json()
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor()
         
         query = """INSERT INTO calendar_event 
@@ -221,7 +234,7 @@ def create_event():
 @app.route('/calendar/course/<course_code>', methods=['GET'])
 def get_course_events(course_code):
     try:
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor(dictionary=True)
         cursor.execute('SELECT * FROM calendar_event WHERE course_code = %s', (course_code,))
         events = cursor.fetchall()
@@ -235,7 +248,7 @@ def get_course_events(course_code):
 @app.route('/calendar/student/<int:student_id>/<date>', methods=['GET'])
 def get_student_daily_events(student_id, date):
     try:
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor(dictionary=True)
        
         query = """
@@ -256,7 +269,7 @@ def get_student_daily_events(student_id, date):
 def create_thread():
     try:
         data = request.get_json()
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor()
         
         query = """INSERT INTO discussion_thread (forum_id, title, initial_post, user_id) 
@@ -274,7 +287,7 @@ def create_thread():
 @app.route('/threads/<int:thread_id>', methods=['GET'])
 def get_thread_content(thread_id):
     try:
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor(dictionary=True)
         
     
@@ -313,7 +326,7 @@ def get_thread_content(thread_id):
 def upload_content():
     try:
         data = request.get_json()
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor()
         
         cursor.execute('SELECT lecturer_id FROM courses WHERE course_code = %s', (data['course_code'],))
@@ -349,7 +362,7 @@ def upload_content():
 @app.route('/courses/<course_code>/content', methods=['GET'])
 def get_full_course_content(course_code):
     try:
-        cnx = mysql.connector.connect(user='user_1', password='password876', host='127.0.0.1', database='course_mgmt')
+        cnx = get_db()
         cursor = cnx.cursor(dictionary=True)
         
         query = """
