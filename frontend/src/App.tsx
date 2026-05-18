@@ -32,9 +32,6 @@ import MotionCard from "./components/MotionCard";
 import Navbar from "./components/Navbar";
 import {
   api,
-  demoContent,
-  demoCourses,
-  demoEvents,
   type Assignment,
   type Course,
   type CourseContent,
@@ -51,145 +48,24 @@ type LoadState = "idle" | "loading" | "ready" | "error";
 type DraftUser = User & { password_hash: string };
 type CourseTool = "overview" | "members" | "calendar" | "forums" | "content" | "assignments" | "reports";
 
-const demoPassword = "$2b$12$abcdefghijklmnopqrstuv";
+const demoPassword = "";
 const savedUserKey = "coursesense:user";
 const savedUsersKey = "coursesense:users";
 const savedLocalKey = "coursesense:local-data";
 
-const seedUsers: DraftUser[] = [
-  {
-    user_id: 61,
-    email: "student1@university.edu",
-    password_hash: demoPassword,
-    role: "student",
-    full_name: "Victoria Garcia",
-  },
-  {
-    user_id: 45,
-    email: "lecturer45@university.edu",
-    password_hash: demoPassword,
-    role: "lecturer",
-    full_name: "Angelica Tucker",
-  },
-  {
-    user_id: 51,
-    email: "admin1@university.edu",
-    password_hash: demoPassword,
-    role: "admin",
-    full_name: "Jessica Holmes",
-  },
-];
+const seedUsers: DraftUser[] = [];
 
-const fallbackAssignments: Assignment[] = [
-  {
-    assignment_id: 1,
-    course_code: "COMP4187",
-    title: "Database Normalization Write-up",
-    due_date: "2026-04-12 23:59:00",
-    total_marks: 100,
-    description: "Explain the entities, relationships, and indexes used by the LMS schema.",
-  },
-  {
-    assignment_id: 2,
-    course_code: "COMP4187",
-    title: "Course Workflow Implementation",
-    due_date: "2026-04-26 23:59:00",
-    total_marks: 100,
-    description: "Submit the course management, discussion, and assessment workflows.",
-  },
-  {
-    assignment_id: 3,
-    course_code: "INFO2220",
-    title: "Forum Moderation Review",
-    due_date: "2026-05-08 17:00:00",
-    total_marks: 50,
-    description: "Describe how discussions should be structured inside a course forum.",
-  },
-];
+const fallbackAssignments: Assignment[] = [];
 
-const fallbackReports: Report[] = [
-  {
-    name: "courses_with_50",
-    title: "Courses with 50 or more students",
-    rows: [{ course_code: "COMP4187", course_title: "Site Line Design", student_count: 72 }],
-  },
-  {
-    name: "students_overfive_courses",
-    title: "Students enrolled in 5 or more courses",
-    rows: [{ user_id: 61, full_name: "Victoria Garcia", course_count: 5 }],
-  },
-  {
-    name: "lecturers_courses",
-    title: "Lecturers teaching 3 or more courses",
-    rows: [{ user_id: 45, full_name: "Angelica Tucker", course_count: 3 }],
-  },
-  {
-    name: "most_enrolled_courses",
-    title: "Top 10 most enrolled courses",
-    rows: [{ course_code: "COMP4187", course_title: "Site Line Design", enrollment_count: 72 }],
-  },
-  {
-    name: "top_10_students_by_average",
-    title: "Top 10 students by overall average",
-    rows: [{ user_id: 61, full_name: "Victoria Garcia", overall_average: 92.4 }],
-  },
-];
+const fallbackReports: Report[] = [];
 
-const fallbackForums: Forum[] = [
-  {
-    forum_id: 1,
-    course_code: "COMP4187",
-    title: "COMP4187 Discussion Forum",
-    description: "Questions, resources, and project discussion for the selected course.",
-    date_created: "2026-03-01 09:00:00",
-  },
-  {
-    forum_id: 2,
-    course_code: "INFO2220",
-    title: "INFO2220 Help Desk",
-    description: "Course Q&A and lecturer announcements.",
-    date_created: "2026-03-04 10:00:00",
-  },
-];
+const fallbackForums: Forum[] = [];
 
-const fallbackThreads: Thread[] = [
-  {
-    thread_id: 1,
-    forum_id: 1,
-    title: "Question about the assignment",
-    initial_post: "Can someone clarify the next assignment requirements?",
-    user_id: 61,
-    created_by: "Victoria Garcia",
-    date_created: "2026-03-15 11:20:00",
-    reply_count: 1,
-  },
-  {
-    thread_id: 2,
-    forum_id: 1,
-    title: "Lab review resources",
-    initial_post: "Posting the key resources ahead of the practical review.",
-    user_id: 45,
-    created_by: "Angelica Tucker",
-    date_created: "2026-03-17 14:10:00",
-    reply_count: 0,
-  },
-];
+const fallbackThreads: Thread[] = [];
 
-const fallbackReplies: Reply[] = [
-  {
-    reply_id: 1,
-    thread_id: 1,
-    user_id: 45,
-    body: "Focus on the schema constraints and how each course workflow is used.",
-    date_created: "2026-03-15 12:00:00",
-  },
-];
+const fallbackReplies: Reply[] = [];
 
-const fallbackMembers: Record<string, { student_id: number; full_name: string }[]> = {
-  COMP4187: [{ student_id: 61, full_name: "Victoria Garcia" }],
-  INFO2220: [],
-  STAT2500: [],
-};
+const fallbackMembers: Record<string, { student_id: number; full_name: string }[]> = {};
 
 function loadJson<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key);
@@ -250,8 +126,8 @@ function LoginView({
   onRegister: (user: Omit<DraftUser, "user_id">) => Promise<void>;
 }) {
   const [mode, setMode] = useState<"login" | "register">("login");
-  const [email, setEmail] = useState("student1@university.edu");
-  const [passwordHash, setPasswordHash] = useState(demoPassword);
+  const [email, setEmail] = useState("");
+  const [passwordHash, setPasswordHash] = useState("");
   const [fullName, setFullName] = useState("");
   const [loginState, setLoginState] = useState<LoadState>("idle");
   const [error, setError] = useState("");
@@ -337,9 +213,9 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => loadJson<User | null>(savedUserKey, null));
   const [localData, setLocalData] = useState(() =>
     loadJson(savedLocalKey, {
-      courses: demoCourses,
-      events: demoEvents,
-      content: demoContent,
+      courses: [] as Course[],
+      events: [] as EventRow[],
+      content: [] as CourseContent[],
       forums: fallbackForums,
       threads: fallbackThreads,
       replies: fallbackReplies,
@@ -2050,7 +1926,7 @@ function RegisterUser() {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<User["role"]>("student");
-  const [passwordHash, setPasswordHash] = useState(demoPassword);
+  const [passwordHash, setPasswordHash] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -2070,7 +1946,7 @@ function RegisterUser() {
       setMessage(`${role} account created for ${email.trim()}`);
       setEmail("");
       setFullName("");
-      setPasswordHash(demoPassword);
+      setPasswordHash("");
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Failed to create user");
