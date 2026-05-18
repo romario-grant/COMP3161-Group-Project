@@ -1,9 +1,13 @@
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, send_from_directory
+from flask_cors import CORS
 import mysql.connector
 import os
 from datetime import datetime
 
-app = Flask(__name__)
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "frontend", "dist")
+
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
+CORS(app)
 
 DB_CONFIG = {
     "host":     os.environ.get("DB_HOST",     "127.0.0.1"),
@@ -841,6 +845,15 @@ def get_report(report_name):
         }, 200)
     except Exception as e:
         return make_response({'error': str(e)}, 400)
+
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_frontend(path):
+    file_path = os.path.join(STATIC_DIR, path)
+    if path and os.path.isfile(file_path):
+        return send_from_directory(STATIC_DIR, path)
+    return send_from_directory(STATIC_DIR, "index.html")
 
 
 if __name__ == "__main__":

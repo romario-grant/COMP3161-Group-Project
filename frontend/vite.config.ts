@@ -1,8 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
+  define: command === "serve"
+    ? { "import.meta.env.VITE_API_URL": JSON.stringify("/api") }
+    : {},
   server: {
     port: 5173,
     strictPort: false,
@@ -14,4 +17,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
