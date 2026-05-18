@@ -11,10 +11,14 @@ CORS(app)
 
 DB_CONFIG = {
     "host":     os.environ.get("DB_HOST",     "127.0.0.1"),
+    "port":     int(os.environ.get("DB_PORT", "3306")),
     "user":     os.environ.get("DB_USER",     "user_1"),
     "password": os.environ.get("DB_PASSWORD", "password876"),
     "database": os.environ.get("DB_NAME",     "course_mgmt"),
 }
+
+if os.environ.get("DB_SSL", "").lower() in ("true", "1", "required"):
+    DB_CONFIG["ssl_disabled"] = False
 
 def get_db():
     return mysql.connector.connect(**DB_CONFIG)
