@@ -48,7 +48,6 @@ type LoadState = "idle" | "loading" | "ready" | "error";
 type DraftUser = User & { password_hash: string };
 type CourseTool = "overview" | "members" | "calendar" | "forums" | "content" | "assignments" | "reports";
 
-const demoPassword = "";
 const savedUserKey = "coursesense:user";
 const savedUsersKey = "coursesense:users";
 const savedLocalKey = "coursesense:local-data";
@@ -427,6 +426,7 @@ function App() {
   const threadReplies = activeThread ? replies.filter((reply) => reply.thread_id === activeThread.thread_id) : [];
   const courseAssignments = assignments.filter((assignment) => assignment.course_code === selectedCourse);
 
+  const isLecturer = currentUser?.role === "lecturer";
   const stats = useMemo(
     () =>
       currentUser?.role === "admin"
@@ -436,13 +436,20 @@ function App() {
             { label: "Reports", value: reports.length, icon: BarChart3, tone: "info" },
             { label: "Role", value: "Admin", icon: Users, tone: "blue" },
           ]
-        : [
-            { label: "Courses Loaded", value: courses.length, icon: BookOpen, tone: "blue" },
-            { label: "Signed In As", value: currentUser?.role || "Guest", icon: GraduationCap, tone: "safe" },
-            { label: "Selected Course", value: selectedCourse, icon: Layers3, tone: "info" },
-            { label: "Course Members", value: members[selectedCourse]?.length || 0, icon: Users, tone: "blue" },
-          ],
-    [courses.length, currentUser?.role, members, reports.length, selectedCourse]
+        : isLecturer
+          ? [
+              { label: "My Courses", value: myCourses.length, icon: BookOpen, tone: "blue" },
+              { label: "Signed In As", value: "Lecturer", icon: GraduationCap, tone: "safe" },
+              { label: "Total Students", value: myCourses.reduce((sum, c) => sum + (members[c.course_code]?.length || 0), 0), icon: Users, tone: "info" },
+              { label: "Pending Grades", value: submissions.filter((s) => s.submission_status !== "graded" && myCourses.some((c) => c.course_code === s.course_code)).length, icon: FileText, tone: "warn" },
+            ]
+          : [
+              { label: "Enrolled", value: `${Object.values(members).filter((m) => m.some((s) => s.student_id === currentUser?.user_id)).length}/6`, icon: BookOpen, tone: "blue" },
+              { label: "Signed In As", value: "Student", icon: GraduationCap, tone: "safe" },
+              { label: "Submissions", value: submissions.filter((s) => s.student_id === currentUser?.user_id).length, icon: FileText, tone: "info" },
+              { label: "Graded", value: submissions.filter((s) => s.student_id === currentUser?.user_id && s.submission_status === "graded").length, icon: CheckCircle2, tone: "safe" },
+            ],
+    [courses.length, currentUser?.role, members, myCourses, reports.length, selectedCourse, submissions, isLecturer]
   );
 
   if (!currentUser) {
@@ -483,7 +490,7 @@ function App() {
                 submissions={submissions}
               />
             )}
-            {(active === "all-courses" || active === "courses") && (
+            {(active === "all-courses" || active === "courses") && !(currentUser.role === "lecturer" && active === "all-courses") && (
               <Courses
                 mode={currentUser.role === "admin" && active === "all-courses" ? "create" : active === "all-courses" ? "all" : "mine"}
                 courses={currentUser.role === "admin" ? courses : active === "all-courses" ? courses : myCourses}
@@ -746,6 +753,7 @@ function Dashboard({
 }) {
   const isAdmin = currentUser.role === "admin";
   const isStudent = currentUser.role === "student";
+  const isLecturer = currentUser.role === "lecturer";
   const enrolledCount = isStudent
     ? Object.values(members).filter((m) => m.some((s) => s.student_id === currentUser.user_id)).length
     : 0;
@@ -753,6 +761,12 @@ function Dashboard({
     ? submissions.filter((s) => s.student_id === currentUser.user_id)
     : [];
   const gradedSubmissions = mySubmissions.filter((s) => s.submission_status === "graded");
+  const lecturerCourses = isLecturer
+    ? courses.filter((c) => c.lecturer_id === currentUser.user_id)
+    : [];
+  const pendingGrades = isLecturer
+    ? submissions.filter((s) => s.submission_status !== "graded" && lecturerCourses.some((c) => c.course_code === s.course_code))
+    : [];
 
   const quickActions = isAdmin
     ? [
@@ -766,8 +780,7 @@ function Dashboard({
           { page: "all-courses", label: "Browse & Enroll", icon: Layers3 },
         ]
       : [
-          { page: "all-courses", label: "All Courses", icon: BookOpen },
-          { page: "courses", label: "My Courses", icon: Layers3 },
+          { page: "courses", label: "My Courses", icon: BookOpen },
         ];
 
   return (
@@ -775,19 +788,21 @@ function Dashboard({
       <section className="hero-panel">
         <div className="hero-photo" />
         <div className="hero-content">
-          <h1>{isAdmin ? "Admin Dashboard" : isStudent ? `Welcome, ${currentUser.full_name.split(" ")[0]}.` : "One workspace for every course action."}</h1>
+          <h1>{isAdmin ? "Admin Dashboard" : isLecturer ? `Welcome, ${currentUser.full_name.split(" ")[0]}.` : isStudent ? `Welcome, ${currentUser.full_name.split(" ")[0]}.` : "One workspace for every course action."}</h1>
           <p>
             {isAdmin
               ? "Manage courses, register users, and view system reports."
-              : isStudent
-                ? `You are enrolled in ${enrolledCount} of 6 courses.`
-                : "Select a course to open its tools and activity."}
+              : isLecturer
+                ? `You are teaching ${lecturerCourses.length} course${lecturerCourses.length !== 1 ? "s" : ""}.${pendingGrades.length > 0 ? ` ${pendingGrades.length} submission${pendingGrades.length !== 1 ? "s" : ""} pending review.` : ""}`
+                : isStudent
+                  ? `You are enrolled in ${enrolledCount} of 6 courses.`
+                  : "Select a course to open its tools and activity."}
           </p>
           {!isAdmin && (
             <div className="hero-actions">
-              <GlassButton variant="primary" onClick={() => setActive(isStudent ? "courses" : "all-courses")}>
+              <GlassButton variant="primary" onClick={() => setActive("courses")}>
                 <BookOpen size={16} />
-                {isStudent ? "My Courses" : "Explore Courses"}
+                My Courses
               </GlassButton>
               {isStudent && (
                 <GlassButton onClick={() => setActive("all-courses")}>
@@ -800,27 +815,25 @@ function Dashboard({
         </div>
       </section>
 
-      {currentUser.role === "lecturer" && (
-        <div className="stats-grid">
-          {stats.map(({ label, value, icon: Icon, tone }, index) => (
-            <MotionCard key={label} delay={index * 0.05} hover={false} className="stat-card">
-              <GlassIcon tone={tone as "safe" | "warn" | "blue" | "info"} size="2rem">
-                <Icon size={18} />
-              </GlassIcon>
-              <p>{label}</p>
-              <strong>{value}</strong>
-            </MotionCard>
-          ))}
-        </div>
-      )}
+      <div className="stats-grid">
+        {stats.map(({ label, value, icon: Icon, tone }, index) => (
+          <MotionCard key={label} delay={index * 0.05} hover={false} className="stat-card">
+            <GlassIcon tone={tone as "safe" | "warn" | "blue" | "info"} size="2rem">
+              <Icon size={18} />
+            </GlassIcon>
+            <p>{label}</p>
+            <strong>{value}</strong>
+          </MotionCard>
+        ))}
+      </div>
 
       <div className="dashboard-grid">
         {/* Quick Actions — all roles */}
         <MotionCard hover={false} className="wide-card">
           <div className="section-title">
             <div>
-              <h2>{isAdmin ? "Quick Actions" : isStudent ? "Quick Actions" : `${selectedCourse} Activity`}</h2>
-              <p>{status === "loading" ? "Loading..." : isAdmin ? "Manage the system." : isStudent ? "Jump to your courses and assignments." : "Course activity snapshot."}</p>
+              <h2>{isAdmin ? "Quick Actions" : isLecturer ? "Quick Actions" : isStudent ? "Quick Actions" : `${selectedCourse} Activity`}</h2>
+              <p>{status === "loading" ? "Loading..." : isAdmin ? "Manage the system." : isLecturer ? "Manage your courses and grade submissions." : isStudent ? "Jump to your courses and assignments." : "Course activity snapshot."}</p>
             </div>
             {status === "loading" && <GlassSpinner size={28} />}
           </div>
@@ -854,6 +867,31 @@ function Dashboard({
                   <Badge variant="info">{report.rows.length}</Badge>
                 </button>
               ))}
+            </div>
+          </MotionCard>
+        ) : isLecturer ? (
+          <MotionCard hover={false}>
+            <div className="section-title">
+              <div>
+                <h2>Teaching Summary</h2>
+              </div>
+              <GlassIcon tone="blue" size="2rem">
+                <GraduationCap size={18} />
+              </GlassIcon>
+            </div>
+            <div className="mini-list">
+              <div>
+                <Badge variant="blue">Courses</Badge>
+                <p>{lecturerCourses.length} course{lecturerCourses.length !== 1 ? "s" : ""} assigned</p>
+              </div>
+              <div>
+                <Badge variant="info">Students</Badge>
+                <p>{lecturerCourses.reduce((sum, c) => sum + (members[c.course_code]?.length || 0), 0)} total students</p>
+              </div>
+              <div>
+                <Badge variant={pendingGrades.length > 0 ? "warn" : "safe"}>Pending</Badge>
+                <p>{pendingGrades.length} submission{pendingGrades.length !== 1 ? "s" : ""} to grade</p>
+              </div>
             </div>
           </MotionCard>
         ) : isStudent ? (
@@ -915,6 +953,15 @@ function Dashboard({
               </div>
             </div>
           </MotionCard>
+        ) : isLecturer ? (
+          <MotionCard hover={false}>
+            <div className="section-title">
+              <div>
+                <h2>Upcoming Events</h2>
+              </div>
+            </div>
+            <MiniList items={events.slice(0, 3).map((event) => [event.event_type, event.title, event.start_date])} />
+          </MotionCard>
         ) : isStudent ? (
           <MotionCard hover={false}>
             <div className="section-title">
@@ -941,11 +988,11 @@ function Dashboard({
         <MotionCard hover={false} className="wide-card">
           <div className="section-title">
             <div>
-              <h2>{isAdmin ? "All Courses" : isStudent ? "My Enrolled Courses" : "Available Courses"}</h2>
+              <h2>{isAdmin ? "All Courses" : isLecturer ? "My Courses" : isStudent ? "My Enrolled Courses" : "Available Courses"}</h2>
             </div>
           </div>
           <div className="course-list compact">
-            {(isStudent ? myCourses : courses).slice(0, 6).map((course) => (
+            {(isStudent || isLecturer ? myCourses : courses).slice(0, 6).map((course) => (
               <div className="course-row" key={course.course_code}>
                 <div>
                   <Badge variant="blue">{course.course_code}</Badge>
@@ -957,6 +1004,9 @@ function Dashboard({
             ))}
             {isStudent && myCourses.length === 0 && (
               <EmptyState icon={BookOpen} title="No courses yet" children="Enroll in courses from Browse & Enroll." />
+            )}
+            {isLecturer && myCourses.length === 0 && (
+              <EmptyState icon={BookOpen} title="No courses assigned" children="You have no courses assigned to you yet." />
             )}
           </div>
         </MotionCard>
@@ -1846,7 +1896,7 @@ function Assignments({
                   </GlassButton>
                 </form>
               )}
-              {currentUser.role !== "student" && (
+              {currentUser.role === "lecturer" && (
                 <div className="mini-list">
                   {relatedSubmissions.length ? (
                     relatedSubmissions.map((submission) => (

@@ -52,6 +52,19 @@ def register_user():
     try:
         data = request.get_json()
 
+        admin_id = data.get('admin_id')
+        if admin_id:
+            cnx = get_db()
+            cursor = cnx.cursor(dictionary=True)
+            cursor.execute('SELECT role FROM users WHERE user_id = %s', (admin_id,))
+            admin_user = cursor.fetchone()
+            if not admin_user or admin_user['role'] != 'admin':
+                cursor.close()
+                cnx.close()
+                return make_response({'error': 'Only admins can register new users'}, 403)
+            cursor.close()
+            cnx.close()
+
         cnx = get_db()
         cursor = cnx.cursor()
         values = (data['email'], data['password_hash'], data['role'], data['full_name'])
@@ -286,14 +299,21 @@ def create_event():
     try:
         data = request.get_json()
         cnx = get_db()
-        cursor = cnx.cursor()
-        
-        query = """INSERT INTO calendar_event 
-                   (course_code, lecturer_id, title, event_type, start_date, end_date, description) 
+        cursor = cnx.cursor(dictionary=True)
+
+        cursor.execute('SELECT lecturer_id FROM courses WHERE course_code = %s', (data['course_code'],))
+        course = cursor.fetchone()
+        if not course or course['lecturer_id'] != data['lecturer_id']:
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'Only the assigned lecturer can create events for this course'}, 403)
+
+        query = """INSERT INTO calendar_event
+                   (course_code, lecturer_id, title, event_type, start_date, end_date, description)
                    VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-        values = (data['course_code'], data['lecturer_id'], data['title'], 
+        values = (data['course_code'], data['lecturer_id'], data['title'],
                   data['event_type'], data['start_date'], data['end_date'], data['description'])
-        
+
         cursor.execute(query, values)
         cnx.commit()
         cursor.close()
@@ -345,12 +365,22 @@ def create_forum(course_code=None):
         forum_course_code = course_code or data.get('course_code')
         title = data.get('title')
         description = data.get('description')
+        user_id = data.get('user_id')
 
         if not forum_course_code or not title:
             return make_response({'error': 'course_code and title are required'}, 400)
 
         cnx = get_db()
         cursor = cnx.cursor(dictionary=True)
+
+        if user_id:
+            cursor.execute('SELECT role FROM users WHERE user_id = %s', (user_id,))
+            user = cursor.fetchone()
+            if not user or user['role'] == 'student':
+                cursor.close()
+                cnx.close()
+                return make_response({'error': 'Only admins and lecturers can create forums'}, 403)
+
         cursor.execute('SELECT course_code FROM courses WHERE course_code = %s', (forum_course_code,))
         if not cursor.fetchone():
             cursor.close()
@@ -822,6 +852,17 @@ def grade_assignment(submission_id=None):
 @app.route('/reports', methods=['GET'])
 def get_reports():
     try:
+        user_id = request.args.get('user_id')
+        if user_id:
+            cnx = get_db()
+            cursor = cnx.cursor(dictionary=True)
+            cursor.execute('SELECT role FROM users WHERE user_id = %s', (user_id,))
+            user = cursor.fetchone()
+            cursor.close()
+            cnx.close()
+            if not user or user['role'] != 'admin':
+                return make_response({'error': 'Only admins can access reports'}, 403)
+
         reports = []
         for view_name, title in REPORT_VIEWS.items():
             reports.append({
@@ -838,6 +879,17 @@ def get_reports():
 @app.route('/reports/<report_name>', methods=['GET'])
 def get_report(report_name):
     try:
+        user_id = request.args.get('user_id')
+        if user_id:
+            cnx = get_db()
+            cursor = cnx.cursor(dictionary=True)
+            cursor.execute('SELECT role FROM users WHERE user_id = %s', (user_id,))
+            user = cursor.fetchone()
+            cursor.close()
+            cnx.close()
+            if not user or user['role'] != 'admin':
+                return make_response({'error': 'Only admins can access reports'}, 403)
+
         rows = fetch_all_from_view(report_name)
         if rows is None:
             return make_response({'error': 'Report not found'}, 404)

@@ -24,7 +24,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"user_id\": 100061,\n  \"email\": \"student.demo@university.edu\",\n  \"password_hash\": \"$2b$12$abcdefghijklmnopqrstuv\",\n  \"role\": \"student\",\n  \"full_name\": \"Demo Student\",\n  \"created_at\": \"2026-01-12 08:00:00\"\n}",
+              "raw": "{\n  \"admin_id\": {{admin_id}},\n  \"email\": \"student.demo@university.edu\",\n  \"password_hash\": \"$2b$12$abcdefghijklmnopqrstuv\",\n  \"role\": \"student\",\n  \"full_name\": \"Demo Student\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -347,63 +347,6 @@
       "name": "forums",
       "item": [
         {
-          "name": "create thread",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"forum_id\": {{forum_id}},\n  \"title\": \"Question about the assignment\",\n  \"initial_post\": \"Can someone clarify the requirements for the next assignment?\",\n  \"user_id\": {{student_id}}\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{hostname}}/forums/thread/create",
-              "host": [
-                "{{hostname}}"
-              ],
-              "path": [
-                "forums",
-                "thread",
-                "create"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "get thread content",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{hostname}}/threads/{{thread_id}}",
-              "host": [
-                "{{hostname}}"
-              ],
-              "path": [
-                "threads",
-                "{{thread_id}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
           "name": "create forum",
           "request": {
             "method": "POST",
@@ -415,7 +358,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"course_code\": \"{{course_code}}\",\n  \"title\": \"General Discussion\",\n  \"description\": \"Questions and course discussion for this course.\"\n}",
+              "raw": "{\n  \"course_code\": \"{{course_code}}\",\n  \"title\": \"General Discussion\",\n  \"description\": \"Questions and course discussion for this course.\",\n  \"user_id\": {{lecturer_id}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -473,7 +416,62 @@
           "response": []
         },
         {
-          "name": "add reply",
+          "name": "create thread",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"forum_id\": {{forum_id}},\n  \"title\": \"Question about the assignment\",\n  \"initial_post\": \"Can someone clarify the requirements for the next assignment?\",\n  \"user_id\": {{student_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{hostname}}/create_thread",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "create_thread"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get thread content",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/threads/{{thread_id}}",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "threads",
+                "{{thread_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "add reply to thread",
           "request": {
             "method": "POST",
             "header": [
@@ -484,7 +482,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"thread_id\": \"{{thread_id}}\",\n  \"user_id\": \"{{student_id}}\",\n  \"body\": \"Thanks, this helped me understand the thread.\",\n  \"parent_reply_id\": null\n}",
+              "raw": "{\n  \"user_id\": {{student_id}},\n  \"body\": \"Thanks, this helped me understand the thread.\",\n  \"parent_reply_id\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -492,12 +490,14 @@
               }
             },
             "url": {
-              "raw": "{{hostname}}/add_reply",
+              "raw": "{{hostname}}/threads/{{thread_id}}/replies",
               "host": [
                 "{{hostname}}"
               ],
               "path": [
-                "add_reply"
+                "threads",
+                "{{thread_id}}",
+                "replies"
               ]
             }
           },
@@ -602,7 +602,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"assignment_id\": \"{{assignment_id}}\",\n  \"student_id\": \"{{student_id}}\",\n  \"file_url\": \"https://example.com/submissions/assignment-1.pdf\",\n  \"text_answer\": \"My answer for this assignment.\"\n}",
+              "raw": "{\n  \"student_id\": {{student_id}},\n  \"file_url\": \"https://example.com/submissions/assignment-1.pdf\",\n  \"text_answer\": \"My answer for this assignment.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -610,12 +610,14 @@
               }
             },
             "url": {
-              "raw": "{{hostname}}/submit_assignment",
+              "raw": "{{hostname}}/assignments/{{assignment_id}}/submit",
               "host": [
                 "{{hostname}}"
               ],
               "path": [
-                "submit_assignment"
+                "assignments",
+                "{{assignment_id}}",
+                "submit"
               ]
             }
           },
@@ -671,7 +673,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"submission_id\": \"{{submission_id}}\",\n  \"graded_by_lecturer_id\": \"{{lecturer_id}}\",\n  \"score\": 85\n}",
+              "raw": "{\n  \"lecturer_id\": {{lecturer_id}},\n  \"score\": 85\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -679,12 +681,14 @@
               }
             },
             "url": {
-              "raw": "{{hostname}}/grade_assignment",
+              "raw": "{{hostname}}/submissions/{{submission_id}}/grade",
               "host": [
                 "{{hostname}}"
               ],
               "path": [
-                "grade_assignment"
+                "submissions",
+                "{{submission_id}}",
+                "grade"
               ]
             }
           },
@@ -701,12 +705,18 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{hostname}}/reports",
+              "raw": "{{hostname}}/reports?user_id={{admin_id}}",
               "host": [
                 "{{hostname}}"
               ],
               "path": [
                 "reports"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "{{admin_id}}"
+                }
               ]
             }
           },
@@ -718,13 +728,19 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{hostname}}/reports/courses_with_50",
+              "raw": "{{hostname}}/reports/courses_with_50?user_id={{admin_id}}",
               "host": [
                 "{{hostname}}"
               ],
               "path": [
                 "reports",
                 "courses_with_50"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "{{admin_id}}"
+                }
               ]
             }
           },
@@ -736,13 +752,19 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{hostname}}/reports/students_overfive_courses",
+              "raw": "{{hostname}}/reports/students_overfive_courses?user_id={{admin_id}}",
               "host": [
                 "{{hostname}}"
               ],
               "path": [
                 "reports",
                 "students_overfive_courses"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "{{admin_id}}"
+                }
               ]
             }
           },
@@ -754,13 +776,19 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{hostname}}/reports/lecturers_courses",
+              "raw": "{{hostname}}/reports/lecturers_courses?user_id={{admin_id}}",
               "host": [
                 "{{hostname}}"
               ],
               "path": [
                 "reports",
                 "lecturers_courses"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "{{admin_id}}"
+                }
               ]
             }
           },
@@ -772,13 +800,19 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{hostname}}/reports/most_enrolled_courses",
+              "raw": "{{hostname}}/reports/most_enrolled_courses?user_id={{admin_id}}",
               "host": [
                 "{{hostname}}"
               ],
               "path": [
                 "reports",
                 "most_enrolled_courses"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "{{admin_id}}"
+                }
               ]
             }
           },
@@ -790,13 +824,19 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{hostname}}/reports/top_10_students_by_average",
+              "raw": "{{hostname}}/reports/top_10_students_by_average?user_id={{admin_id}}",
               "host": [
                 "{{hostname}}"
               ],
               "path": [
                 "reports",
                 "top_10_students_by_average"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "{{admin_id}}"
+                }
               ]
             }
           },
@@ -808,7 +848,7 @@
   "variable": [
     {
       "key": "hostname",
-      "value": "http://127.0.0.1:5000",
+      "value": "http://127.0.0.1:5001",
       "type": "string"
     },
     {
@@ -823,7 +863,7 @@
     },
     {
       "key": "lecturer_id",
-      "value": "45",
+      "value": "1",
       "type": "string"
     },
     {
@@ -833,7 +873,7 @@
     },
     {
       "key": "course_code",
-      "value": "COMP4187",
+      "value": "COMP1287",
       "type": "string"
     },
     {

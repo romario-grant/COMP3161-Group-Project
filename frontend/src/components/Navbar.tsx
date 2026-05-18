@@ -2,9 +2,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, Menu, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
-const defaultLinks = [
+const studentLinks = [
   ["dashboard", "Dashboard"],
   ["all-courses", "All Courses"],
+  ["courses", "My Courses"],
+] as const;
+
+const lecturerLinks = [
+  ["dashboard", "Dashboard"],
   ["courses", "My Courses"],
 ] as const;
 
@@ -30,7 +35,7 @@ export default function Navbar({
 }) {
   const [open, setOpen] = useState(false);
   const specularRef = useRef<HTMLDivElement>(null);
-  const navLinks = userRole === "admin" ? adminLinks : defaultLinks;
+  const navLinks = userRole === "admin" ? adminLinks : userRole === "lecturer" ? lecturerLinks : studentLinks;
 
   const navigate = (value: string) => {
     setActive(value);
