@@ -2,25 +2,35 @@ import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, Menu, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
-const links = [
+const defaultLinks = [
   ["dashboard", "Dashboard"],
-  ["courses", "Courses"],
-  ["calendar", "Calendar"],
-  ["forums", "Forums"],
-  ["content", "Content"],
-  ["assignments", "Assignments"],
-  ["reports", "Reports"],
+  ["all-courses", "All Courses"],
+  ["courses", "My Courses"],
+] as const;
+
+const adminLinks = [
+  ["dashboard", "Dashboard"],
+  ["courses", "All Courses"],
+  ["all-courses", "Create a Course"],
+  ["register-user", "Register User"],
 ] as const;
 
 export default function Navbar({
   active,
   setActive,
+  userName,
+  userRole,
+  onSignOut,
 }: {
   active: string;
   setActive: (value: string) => void;
+  userName: string;
+  userRole: string;
+  onSignOut: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const specularRef = useRef<HTMLDivElement>(null);
+  const navLinks = userRole === "admin" ? adminLinks : defaultLinks;
 
   const navigate = (value: string) => {
     setActive(value);
@@ -63,17 +73,21 @@ export default function Navbar({
         <div className="glass-nav-inner">
           <button className="brand" onClick={() => navigate("dashboard")}>
             <img src="/sle-logo.png" alt="SLE" style={{ height: "2rem", width: "auto", display: "inline-block", verticalAlign: "middle", marginRight: "0.5rem" }} />
-            SLE
+            Student Learning Environment
           </button>
           <div className="nav-links">
-            {links.map(([id, label]) => (
+            {navLinks.map(([id, label]) => (
               <button key={id} onClick={() => navigate(id)} className={active === id ? "active" : ""}>
                 {label}
               </button>
             ))}
           </div>
           <div className="nav-actions">
-            <button className="ghost-button">
+            <div className="nav-user" title={userName}>
+              <strong>{userName}</strong>
+              <span>{userRole}</span>
+            </div>
+            <button className="ghost-button" onClick={onSignOut}>
               Sign Out <LogOut size={14} />
             </button>
           </div>
@@ -98,7 +112,7 @@ export default function Navbar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {links.map(([id, label], index) => (
+            {navLinks.map(([id, label], index) => (
               <motion.button
                 key={id}
                 initial={{ opacity: 0, y: 18 }}
@@ -110,6 +124,14 @@ export default function Navbar({
                 {label}
               </motion.button>
             ))}
+            <motion.button
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: navLinks.length * 0.05 }}
+              onClick={onSignOut}
+            >
+              Sign Out
+            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>

@@ -63,6 +63,37 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "login user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student1@university.edu\",\n  \"password_hash\": \"$2b$12$abcdefghijklmnopqrstuv\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{hostname}}/login",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -371,6 +402,106 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "create forum",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_code\": \"{{course_code}}\",\n  \"title\": \"General Discussion\",\n  \"description\": \"Questions and course discussion for this course.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{hostname}}/create_forum",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "create_forum"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get course forums",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/courses/{{course_code}}/forums",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "courses",
+                "{{course_code}}",
+                "forums"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get forum threads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/forums/{{forum_id}}/threads",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "forums",
+                "{{forum_id}}",
+                "threads"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "add reply",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"thread_id\": \"{{thread_id}}\",\n  \"user_id\": \"{{student_id}}\",\n  \"body\": \"Thanks, this helped me understand the thread.\",\n  \"parent_reply_id\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{hostname}}/add_reply",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "add_reply"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -436,6 +567,242 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "assignments",
+      "item": [
+        {
+          "name": "get course assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/courses/{{course_code}}/assignments",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "courses",
+                "{{course_code}}",
+                "assignments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "submit assignment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignment_id\": \"{{assignment_id}}\",\n  \"student_id\": \"{{student_id}}\",\n  \"file_url\": \"https://example.com/submissions/assignment-1.pdf\",\n  \"text_answer\": \"My answer for this assignment.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{hostname}}/submit_assignment",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "submit_assignment"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get assignment submissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/assignments/{{assignment_id}}/submissions",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "assignments",
+                "{{assignment_id}}",
+                "submissions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get student submissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/students/{{student_id}}/submissions",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "students",
+                "{{student_id}}",
+                "submissions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "grade assignment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"submission_id\": \"{{submission_id}}\",\n  \"graded_by_lecturer_id\": \"{{lecturer_id}}\",\n  \"score\": 85\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{hostname}}/grade_assignment",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "grade_assignment"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "reports",
+      "item": [
+        {
+          "name": "get all reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/reports",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "reports"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "courses with 50 or more students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/reports/courses_with_50",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "reports",
+                "courses_with_50"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "students enrolled in 5 or more courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/reports/students_overfive_courses",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "reports",
+                "students_overfive_courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "lecturers teaching 3 or more courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/reports/lecturers_courses",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "reports",
+                "lecturers_courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "top 10 most enrolled courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/reports/most_enrolled_courses",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "reports",
+                "most_enrolled_courses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "top 10 students by average",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{hostname}}/reports/top_10_students_by_average",
+              "host": [
+                "{{hostname}}"
+              ],
+              "path": [
+                "reports",
+                "top_10_students_by_average"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -487,6 +854,16 @@
     {
       "key": "event_date",
       "value": "2026-03-20",
+      "type": "string"
+    },
+    {
+      "key": "assignment_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "submission_id",
+      "value": "1",
       "type": "string"
     }
   ]

@@ -140,12 +140,12 @@ body,
 
 /* Primary variant — bright fill */
 .glass-btn-primary .glass-overlay {
-  background: rgba(244, 244, 245, 0.88);
+  background: rgba(255, 255, 255, 0.22);
   border-color: rgba(255, 255, 255, 0.35);
 }
 
 .glass-btn-primary .glass-btn-content {
-  color: #101014;
+  color: #fff;
 }
 
 :root.light .glass-btn-primary .glass-overlay {

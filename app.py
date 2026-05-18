@@ -1,6 +1,7 @@
 from flask import Flask, request, make_response
 import mysql.connector
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -13,6 +14,28 @@ DB_CONFIG = {
 
 def get_db():
     return mysql.connector.connect(**DB_CONFIG)
+
+
+REPORT_VIEWS = {
+    "courses_with_50": "Courses with 50 or more students",
+    "students_overfive_courses": "Students enrolled in 5 or more courses",
+    "lecturers_courses": "Lecturers teaching 3 or more courses",
+    "most_enrolled_courses": "Top 10 most enrolled courses",
+    "top_10_students_by_average": "Top 10 students by overall average",
+}
+
+
+def fetch_all_from_view(view_name):
+    if view_name not in REPORT_VIEWS:
+        return None
+
+    cnx = get_db()
+    cursor = cnx.cursor(dictionary=True)
+    cursor.execute(f"SELECT * FROM {view_name}")
+    rows = cursor.fetchall()
+    cursor.close()
+    cnx.close()
+    return rows
 
 
 @app.route('/register_user', methods=['POST'])
@@ -64,6 +87,39 @@ def user_login(user_id):
 
     except Exception as e:
         return make_response({'error':str(e)}, 400)
+
+
+@app.route('/login', methods=['POST'])
+@app.route('/users/login', methods=['POST'])
+def login_user():
+    try:
+        data = request.get_json() or {}
+        email = data.get('email')
+        password_hash = data.get('password_hash') or data.get('password')
+
+        if not email or not password_hash:
+            return make_response({'error': 'email and password_hash are required'}, 400)
+
+        cnx = get_db()
+        cursor = cnx.cursor(dictionary=True)
+        cursor.execute(
+            '''
+            SELECT user_id, email, role, full_name, created_at
+            FROM users
+            WHERE email = %s AND password_hash = %s
+            ''',
+            (email, password_hash)
+        )
+        user = cursor.fetchone()
+        cursor.close()
+        cnx.close()
+
+        if not user:
+            return make_response({'error': 'Invalid email or password'}, 401)
+
+        return make_response({'message': 'Login successful', 'user': user}, 200)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
 
 @app.route('/create_course', methods=['POST'])
 
@@ -175,6 +231,14 @@ def register_for_course():
         cnx = get_db()
         cursor = cnx.cursor()
 
+        cursor.execute('SELECT COUNT(*) FROM enrollments WHERE student_id = %s', (student_id,))
+        current_count = cursor.fetchone()[0]
+
+        if current_count >= 6:
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'Students cannot enroll in more than 6 courses'}, 400)
+
         cursor.execute('INSERT INTO enrollments (student_id, course_code) VALUES (%s, %s)', (student_id, course_code))
 
         cnx.commit()
@@ -182,7 +246,7 @@ def register_for_course():
         cursor.close()
         cnx.close()
 
-        return make_response({'message': 'Student registered for course!'}, 201)
+        return make_response({'message': 'Student registered for course!', 'enrollment_count': current_count + 1}, 201)
     except Exception as e:
         return make_response({'error':str(e)}, 400)
 
@@ -264,22 +328,186 @@ def get_student_daily_events(student_id, date):
     except Exception as e:
         return make_response({'error': str(e)}, 400)                     
 
-#Creates newthread
+
+@app.route('/create_forum', methods=['POST'])
+@app.route('/courses/<course_code>/forums', methods=['POST'])
+def create_forum(course_code=None):
+    try:
+        data = request.get_json() or {}
+        forum_course_code = course_code or data.get('course_code')
+        title = data.get('title')
+        description = data.get('description')
+
+        if not forum_course_code or not title:
+            return make_response({'error': 'course_code and title are required'}, 400)
+
+        cnx = get_db()
+        cursor = cnx.cursor(dictionary=True)
+        cursor.execute('SELECT course_code FROM courses WHERE course_code = %s', (forum_course_code,))
+        if not cursor.fetchone():
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'Course not found'}, 404)
+
+        cursor.execute(
+            '''
+            INSERT INTO discussion_forum (course_code, title, description)
+            VALUES (%s, %s, %s)
+            ''',
+            (forum_course_code, title, description)
+        )
+        forum_id = cursor.lastrowid
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+
+        return make_response({'message': 'Discussion forum created', 'forum_id': forum_id}, 201)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+@app.route('/courses/<course_code>/forums', methods=['GET'])
+def get_course_forums(course_code):
+    try:
+        cnx = get_db()
+        cursor = cnx.cursor(dictionary=True)
+        cursor.execute(
+            '''
+            SELECT forum_id, course_code, title, description, date_created
+            FROM discussion_forum
+            WHERE course_code = %s
+            ORDER BY date_created DESC
+            ''',
+            (course_code,)
+        )
+        forums = cursor.fetchall()
+        cursor.close()
+        cnx.close()
+
+        return make_response({'course_code': course_code, 'forums': forums}, 200)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+# Creates a new thread
+@app.route('/create_thread', methods=['POST'])
 @app.route('/forums/thread/create', methods=['POST'])
 def create_thread():
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
+        required = ['forum_id', 'title', 'initial_post', 'user_id']
+        missing = [field for field in required if not data.get(field)]
+        if missing:
+            return make_response({'error': f"Missing required fields: {', '.join(missing)}"}, 400)
+
         cnx = get_db()
-        cursor = cnx.cursor()
+        cursor = cnx.cursor(dictionary=True)
+
+        cursor.execute('SELECT forum_id FROM discussion_forum WHERE forum_id = %s', (data['forum_id'],))
+        if not cursor.fetchone():
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'Forum not found'}, 404)
+
+        cursor.execute('SELECT user_id FROM users WHERE user_id = %s', (data['user_id'],))
+        if not cursor.fetchone():
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'User not found'}, 404)
         
         query = """INSERT INTO discussion_thread (forum_id, title, initial_post, user_id) 
                    VALUES (%s, %s, %s, %s)"""
         cursor.execute(query, (data['forum_id'], data['title'], data['initial_post'], data['user_id']))
+        thread_id = cursor.lastrowid
         
         cnx.commit()
         cursor.close()
         cnx.close()
-        return make_response({'message': 'Thread created!'}, 201)
+        return make_response({'message': 'Thread created!', 'thread_id': thread_id}, 201)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+@app.route('/forums/<int:forum_id>/threads', methods=['GET'])
+def get_forum_threads(forum_id):
+    try:
+        cnx = get_db()
+        cursor = cnx.cursor(dictionary=True)
+        cursor.execute(
+            '''
+            SELECT dt.thread_id, dt.forum_id, dt.title, dt.initial_post, dt.user_id,
+                   u.full_name AS created_by, dt.date_created,
+                   COUNT(r.reply_id) AS reply_count
+            FROM discussion_thread dt
+            JOIN users u ON dt.user_id = u.user_id
+            LEFT JOIN replies r ON dt.thread_id = r.thread_id
+            WHERE dt.forum_id = %s
+            GROUP BY dt.thread_id, dt.forum_id, dt.title, dt.initial_post,
+                     dt.user_id, u.full_name, dt.date_created
+            ORDER BY dt.date_created DESC
+            ''',
+            (forum_id,)
+        )
+        threads = cursor.fetchall()
+        cursor.close()
+        cnx.close()
+
+        return make_response({'forum_id': forum_id, 'threads': threads}, 200)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+@app.route('/add_reply', methods=['POST'])
+@app.route('/threads/<int:thread_id>/replies', methods=['POST'])
+def add_reply(thread_id=None):
+    try:
+        data = request.get_json() or {}
+        reply_thread_id = thread_id or data.get('thread_id')
+        user_id = data.get('user_id')
+        body = data.get('body')
+        parent_reply_id = data.get('parent_reply_id')
+
+        if not reply_thread_id or not user_id or not body:
+            return make_response({'error': 'thread_id, user_id, and body are required'}, 400)
+
+        cnx = get_db()
+        cursor = cnx.cursor(dictionary=True)
+
+        cursor.execute('SELECT thread_id FROM discussion_thread WHERE thread_id = %s', (reply_thread_id,))
+        if not cursor.fetchone():
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'Thread does not exist'}, 404)
+
+        cursor.execute('SELECT user_id FROM users WHERE user_id = %s', (user_id,))
+        if not cursor.fetchone():
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'User not found'}, 404)
+
+        if parent_reply_id:
+            cursor.execute(
+                'SELECT reply_id FROM replies WHERE reply_id = %s AND thread_id = %s',
+                (parent_reply_id, reply_thread_id)
+            )
+            if not cursor.fetchone():
+                cursor.close()
+                cnx.close()
+                return make_response({'error': 'Parent reply does not exist in this thread'}, 404)
+
+        cursor.execute(
+            '''
+            INSERT INTO replies (thread_id, parent_reply_id, user_id, body)
+            VALUES (%s, %s, %s, %s)
+            ''',
+            (reply_thread_id, parent_reply_id, user_id, body)
+        )
+        reply_id = cursor.lastrowid
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+
+        return make_response({'message': 'Reply added', 'reply_id': reply_id}, 201)
     except Exception as e:
         return make_response({'error': str(e)}, 400)
 
@@ -378,6 +606,239 @@ def get_full_course_content(course_code):
         cursor.close()
         cnx.close()
         return make_response({'course_code': course_code, 'content': content}, 200)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+@app.route('/courses/<course_code>/assignments', methods=['GET'])
+def get_course_assignments(course_code):
+    try:
+        cnx = get_db()
+        cursor = cnx.cursor(dictionary=True)
+        cursor.execute(
+            '''
+            SELECT assignment_id, course_code, title, due_date, total_marks, description
+            FROM assignments
+            WHERE course_code = %s
+            ORDER BY due_date ASC
+            ''',
+            (course_code,)
+        )
+        assignments = cursor.fetchall()
+        cursor.close()
+        cnx.close()
+
+        return make_response({'course_code': course_code, 'assignments': assignments}, 200)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+@app.route('/submit_assignment', methods=['POST'])
+@app.route('/assignments/<int:assignment_id>/submit', methods=['POST'])
+def submit_assignment(assignment_id=None):
+    try:
+        data = request.get_json() or {}
+        submission_assignment_id = assignment_id or data.get('assignment_id')
+        student_id = data.get('student_id')
+        file_url = data.get('file_url')
+        text_answer = data.get('text_answer')
+
+        if not submission_assignment_id or not student_id:
+            return make_response({'error': 'assignment_id and student_id are required'}, 400)
+
+        if not file_url and not text_answer:
+            return make_response({'error': 'A file URL or text answer is required'}, 400)
+
+        cnx = get_db()
+        cursor = cnx.cursor(dictionary=True)
+        cursor.execute(
+            '''
+            SELECT a.assignment_id, a.course_code, a.due_date
+            FROM assignments a
+            JOIN enrollments e ON a.course_code = e.course_code
+            WHERE a.assignment_id = %s AND e.student_id = %s
+            ''',
+            (submission_assignment_id, student_id)
+        )
+        assignment = cursor.fetchone()
+
+        if not assignment:
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'Assignment not found for this enrolled student'}, 404)
+
+        submission_status = 'submitted'
+        due_date = assignment.get('due_date')
+        if due_date and datetime.now() > due_date:
+            submission_status = 'late'
+
+        cursor.execute(
+            '''
+            INSERT INTO submissions
+                (assignment_id, student_id, file_url, text_answer, submission_status)
+            VALUES (%s, %s, %s, %s, %s)
+            ''',
+            (submission_assignment_id, student_id, file_url, text_answer, submission_status)
+        )
+        submission_id = cursor.lastrowid
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+
+        return make_response(
+            {'message': 'Assignment submitted', 'submission_id': submission_id, 'submission_status': submission_status},
+            201
+        )
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+@app.route('/assignments/<int:assignment_id>/submissions', methods=['GET'])
+def get_assignment_submissions(assignment_id):
+    try:
+        cnx = get_db()
+        cursor = cnx.cursor(dictionary=True)
+        cursor.execute(
+            '''
+            SELECT s.submission_id, s.assignment_id, s.student_id, u.full_name,
+                   s.submission_time, s.file_url, s.text_answer, s.submission_status,
+                   g.grade_id, g.score, g.graded_by_lecturer_id
+            FROM submissions s
+            JOIN users u ON s.student_id = u.user_id
+            LEFT JOIN grades g ON s.submission_id = g.submission_id
+            WHERE s.assignment_id = %s
+            ORDER BY s.submission_time DESC
+            ''',
+            (assignment_id,)
+        )
+        submissions = cursor.fetchall()
+        cursor.close()
+        cnx.close()
+
+        return make_response({'assignment_id': assignment_id, 'submissions': submissions}, 200)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+@app.route('/students/<int:student_id>/submissions', methods=['GET'])
+def get_student_submissions(student_id):
+    try:
+        cnx = get_db()
+        cursor = cnx.cursor(dictionary=True)
+        cursor.execute(
+            '''
+            SELECT s.submission_id, s.assignment_id, a.title AS assignment_title,
+                   a.course_code, s.submission_time, s.file_url, s.text_answer,
+                   s.submission_status, g.score
+            FROM submissions s
+            JOIN assignments a ON s.assignment_id = a.assignment_id
+            LEFT JOIN grades g ON s.submission_id = g.submission_id
+            WHERE s.student_id = %s
+            ORDER BY s.submission_time DESC
+            ''',
+            (student_id,)
+        )
+        submissions = cursor.fetchall()
+        cursor.close()
+        cnx.close()
+
+        return make_response({'student_id': student_id, 'submissions': submissions}, 200)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+@app.route('/grade_assignment', methods=['POST'])
+@app.route('/submissions/<int:submission_id>/grade', methods=['POST'])
+def grade_assignment(submission_id=None):
+    try:
+        data = request.get_json() or {}
+        grade_submission_id = submission_id or data.get('submission_id')
+        lecturer_id = data.get('graded_by_lecturer_id') or data.get('lecturer_id')
+        score = data.get('score')
+
+        if not grade_submission_id or not lecturer_id or score is None:
+            return make_response({'error': 'submission_id, graded_by_lecturer_id, and score are required'}, 400)
+
+        cnx = get_db()
+        cursor = cnx.cursor(dictionary=True)
+        cursor.execute(
+            '''
+            SELECT s.submission_id, a.total_marks, c.lecturer_id
+            FROM submissions s
+            JOIN assignments a ON s.assignment_id = a.assignment_id
+            JOIN courses c ON a.course_code = c.course_code
+            WHERE s.submission_id = %s
+            ''',
+            (grade_submission_id,)
+        )
+        submission = cursor.fetchone()
+
+        if not submission:
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'Submission not found'}, 404)
+
+        if submission['lecturer_id'] != int(lecturer_id):
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'Only the course lecturer can grade this submission'}, 403)
+
+        if float(score) < 0 or float(score) > float(submission['total_marks']):
+            cursor.close()
+            cnx.close()
+            return make_response({'error': 'Score must be between 0 and the assignment total marks'}, 400)
+
+        cursor.execute(
+            '''
+            INSERT INTO grades (submission_id, graded_by_lecturer_id, score)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                graded_by_lecturer_id = VALUES(graded_by_lecturer_id),
+                score = VALUES(score)
+            ''',
+            (grade_submission_id, lecturer_id, score)
+        )
+        cursor.execute(
+            'UPDATE submissions SET submission_status = %s WHERE submission_id = %s',
+            ('graded', grade_submission_id)
+        )
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+
+        return make_response({'message': 'Assignment graded'}, 201)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+@app.route('/reports', methods=['GET'])
+def get_reports():
+    try:
+        reports = []
+        for view_name, title in REPORT_VIEWS.items():
+            reports.append({
+                'name': view_name,
+                'title': title,
+                'rows': fetch_all_from_view(view_name)
+            })
+
+        return make_response({'reports': reports}, 200)
+    except Exception as e:
+        return make_response({'error': str(e)}, 400)
+
+
+@app.route('/reports/<report_name>', methods=['GET'])
+def get_report(report_name):
+    try:
+        rows = fetch_all_from_view(report_name)
+        if rows is None:
+            return make_response({'error': 'Report not found'}, 404)
+
+        return make_response({
+            'name': report_name,
+            'title': REPORT_VIEWS[report_name],
+            'rows': rows
+        }, 200)
     except Exception as e:
         return make_response({'error': str(e)}, 400)
 

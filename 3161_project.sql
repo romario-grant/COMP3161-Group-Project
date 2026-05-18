@@ -1,6 +1,6 @@
 -- Database Creation
 
-DROP DATABASE IF EXISTS course_mgmt;
+-- DROP DATABASE IF EXISTS course_mgmt;
 CREATE DATABASE course_mgmt;
 USE course_mgmt; 
 
@@ -252,10 +252,17 @@ GROUP BY u.user_id, u.full_name, u.email
 ORDER BY overall_average DESC
 LIMIT 10;
 
-CREATE USER 'user_1'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password876';
+DROP USER IF EXISTS 'user_1'@'localhost';
+
+CREATE USER 'user_1'@'localhost'
+IDENTIFIED BY 'password876';
 
 GRANT ALL PRIVILEGES ON course_mgmt.* TO 'user_1'@'localhost';
 
 FLUSH PRIVILEGES;
 
-
+SELECT COUNT(*) FROM users;
+SELECT COUNT(*) FROM courses;
+SELECT COUNT(*) FROM enrollments;
+SELECT COUNT(*) FROM assignments;
+SELECT COUNT(*) FROM users;
